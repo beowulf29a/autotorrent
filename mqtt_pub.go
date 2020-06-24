@@ -17,6 +17,7 @@ type MQTTPub struct {
 func NewPub(client mqtt.Client) MQTTPub {
 	return MQTTPub{
 		mqttClient: client,
+		torrents:   make(map[string]AutoTorrent),
 	}
 }
 
@@ -41,7 +42,11 @@ func (p *MQTTPub) AddTorrent(link string, guid string) {
 }
 
 func (p *MQTTPub) RemoveTorrent(guid string) {
+	p.mapLocker.Lock()
 	if t, ok := p.torrents[guid]; ok {
 		t.StopTorrent()
+		t = nil
+		delete(p.torrents, guid)
 	}
+	p.mapLocker.Unlock()
 }

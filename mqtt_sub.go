@@ -10,7 +10,7 @@ import (
 
 var f mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 	var pMsg SubMessage
-	json.Unmarshal(msg.Payload(), msg)
+	json.Unmarshal(msg.Payload(), &pMsg)
 	pubChan <- pMsg
 }
 
