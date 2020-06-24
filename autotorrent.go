@@ -1,9 +1,7 @@
 package main
 
 import (
-	"crypto/rand"
 	"fmt"
-	"log"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
@@ -52,7 +50,7 @@ func main() {
 		fmt.Print(msg.Type)
 		fmt.Print(msg.Name)
 		if msg.Type == AddTorrent {
-			go pub.AddTorrent(msg.Name, makeGuid())
+			go pub.AddTorrent(msg.Name)
 		} else if msg.Type == StopTorrent {
 			go pub.RemoveTorrent(msg.Name)
 		}
@@ -73,14 +71,4 @@ func createMQTTClient() mqtt.Client {
 	}
 
 	return client
-}
-
-func makeGuid() string {
-	b := make([]byte, 16)
-	_, err := rand.Read(b)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return fmt.Sprintf("%x-%x-%x-%x-%x",
-		b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }

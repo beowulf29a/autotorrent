@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"strings"
 	"sync"
 
 	"github.com/anacrolix/torrent"
@@ -12,30 +14,79 @@ type MQTTPub struct {
 	torrentClient *torrent.Client
 	mapLocker     sync.Mutex
 	torrents      map[string]AutoTorrent
+	updateChan    chan TMessage
 }
 
 func NewPub(client mqtt.Client) MQTTPub {
 	return MQTTPub{
 		mqttClient: client,
 		torrents:   make(map[string]AutoTorrent),
+		updateChan: make(chan TMessage),
 	}
 }
 
 func (p *MQTTPub) init() {
 	config := torrent.NewDefaultClientConfig()
 	config.Seed = true
-	p.torrentClient, _ = torrent.NewClient(config)
+	c, err := torrent.NewClient(config)
+	if nil == err {
+		p.torrentClient = c
+		go p.PublishToMQTT()
+	}
+
 }
 
-func (p *MQTTPub) AddTorrent(link string, guid string) {
+func (p *MQTTPub) AddTorrent(link string) {
+	guid := p.getGuid(link)
 	if 0 < len(link) {
 		t, e := p.torrentClient.AddMagnet(link)
 		if nil == e {
-			if _, ok := p.torrents[link]; !ok {
+			if _, ok := p.torrents[guid]; !ok {
 				p.mapLocker.Lock()
-				p.torrents[guid] = NewAutoTorrent(guid, t, p.mqttClient)
+				p.torrents[guid] = NewAutoTorrent(guid, t, p.updateChan)
 				p.mapLocker.Unlock()
 				p.torrents[guid].StartTorrent()
+			}
+		}
+	}
+}
+
+func (p *MQTTPub) getGuid(val string) string {
+	idx := strings.LastIndex(val, ":") + 1
+	return val[idx:]
+}
+
+func (p *MQTTPub) PublishToMQTT() {
+	updateMap := make(map[string]TMessage)
+
+	var err error
+
+	for {
+		msg, ok := <-p.updateChan
+		if !ok {
+			break
+		} else {
+			updateMap[msg.Guid] = msg
+
+			//synchronize maps
+			if len(p.torrents) != len(updateMap) {
+				for k := range p.torrents {
+					var found = false
+					for u := range updateMap {
+						if k == u {
+							found = true
+							break
+						}
+					}
+					if !found {
+						delete(updateMap, k)
+					}
+				}
+			}
+
+			if nil == err {
+				b, _ := json.Marshal(updateMap)
+				p.mqttClient.Publish(topic_pub, 0, false, b)
 			}
 		}
 	}

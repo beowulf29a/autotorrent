@@ -1,11 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/anacrolix/torrent"
-	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
 type AutoTorrent interface {
@@ -16,11 +14,11 @@ type AutoTorrent interface {
 
 //autotorrent implements the AutoTorrent interface
 type atorrent struct {
-	Guid      string
-	MQClient  mqtt.Client
-	Torrent   *torrent.Torrent
-	StartTime int64
-	close     bool
+	Guid       string
+	UpdateChan chan TMessage
+	Torrent    *torrent.Torrent
+	StartTime  int64
+	close      bool
 }
 
 type TMessage struct {
@@ -31,14 +29,15 @@ type TMessage struct {
 	DownloadSpeed  float32 `json:"down"`
 	ConnectedPeers int     `json:"peers"`
 	StartTime      int64   `json:"t"`
+	LastUpdate     int64   `json:"l"`
 }
 
-func NewAutoTorrent(guid string, torrent *torrent.Torrent, mc mqtt.Client) AutoTorrent {
+func NewAutoTorrent(guid string, torrent *torrent.Torrent, updateCh chan TMessage) AutoTorrent {
 	at := &atorrent{
-		Guid:      guid,
-		MQClient:  mc,
-		Torrent:   torrent,
-		StartTime: time.Now().Unix(),
+		Guid:       guid,
+		UpdateChan: updateCh,
+		Torrent:    torrent,
+		StartTime:  time.Now().Unix(),
 	}
 	return at
 }
@@ -57,7 +56,8 @@ func (at *atorrent) StartTorrent() {
 		totalSize    int64 = at.Torrent.Info().TotalLength()
 	)
 	for at.Torrent.BytesMissing() != 0 && !at.close {
-		outmsg, _ := json.Marshal(TMessage{
+		//inform update chan that new info is ready
+		at.UpdateChan <- TMessage{
 			Name:           at.Torrent.Name(),
 			Guid:           at.Guid,
 			BytesTotal:     totalSize,
@@ -65,8 +65,9 @@ func (at *atorrent) StartTorrent() {
 			DownloadSpeed:  float32(at.Torrent.BytesCompleted()-lastDOwnload) / 2000.0,
 			ConnectedPeers: at.Torrent.Stats().TotalPeers,
 			StartTime:      at.StartTime,
-		})
-		at.MQClient.Publish(topic_pub, 0, false, outmsg)
+			LastUpdate:     time.Now().Unix(),
+		}
+
 		time.Sleep(2 * time.Second)
 		lastDOwnload = at.Torrent.BytesCompleted()
 	}
