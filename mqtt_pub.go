@@ -85,11 +85,21 @@ func (p *MQTTPub) PublishToMQTT() {
 			}
 
 			if nil == err {
-				b, _ := json.Marshal(updateMap)
+				var output = make([]TMessage, len(updateMap))
+				var count int8 = 0
+				for _, v := range updateMap {
+					output[count] = v
+					count++
+				}
+				b, _ := json.Marshal(fml{Entities: output})
 				p.mqttClient.Publish(topic_pub, 0, false, b)
 			}
 		}
 	}
+}
+
+type fml struct {
+	Entities []TMessage
 }
 
 func (p *MQTTPub) RemoveTorrent(guid string) {

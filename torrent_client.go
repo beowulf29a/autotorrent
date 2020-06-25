@@ -22,14 +22,15 @@ type atorrent struct {
 }
 
 type TMessage struct {
-	Name           string  `json:"n"`
-	Guid           string  `json:"g"`
-	BytesTotal     int64   `json:"bt"`
-	BytesComplete  int64   `json:"bc"`
+	Name           string  `json:"name"`
+	Guid           string  `json:"guid"`
+	BytesTotal     int64   `json:"bytetot"`
+	BytesComplete  int64   `json:"bytecom"`
 	DownloadSpeed  float32 `json:"down"`
+	Percent        float32 `json:"pct"`
 	ConnectedPeers int     `json:"peers"`
-	StartTime      int64   `json:"t"`
-	LastUpdate     int64   `json:"l"`
+	StartTime      int64   `json:"st"`
+	LastUpdate     int64   `json:"lastupdate"`
 }
 
 func NewAutoTorrent(guid string, torrent *torrent.Torrent, updateCh chan TMessage) AutoTorrent {
@@ -66,10 +67,24 @@ func (at *atorrent) StartTorrent() {
 			ConnectedPeers: at.Torrent.Stats().TotalPeers,
 			StartTime:      at.StartTime,
 			LastUpdate:     time.Now().Unix(),
+			Percent:        100.0 * float32(at.Torrent.BytesCompleted()) / float32(totalSize),
 		}
 
 		time.Sleep(2 * time.Second)
 		lastDOwnload = at.Torrent.BytesCompleted()
+	}
+
+	//should be 100%
+	at.UpdateChan <- TMessage{
+		Name:           at.Torrent.Name(),
+		Guid:           at.Guid,
+		BytesTotal:     totalSize,
+		BytesComplete:  at.Torrent.BytesCompleted(),
+		DownloadSpeed:  float32(at.Torrent.BytesCompleted()-lastDOwnload) / 2000.0,
+		ConnectedPeers: at.Torrent.Stats().TotalPeers,
+		StartTime:      at.StartTime,
+		LastUpdate:     time.Now().Unix(),
+		Percent:        100.0 * float32(at.Torrent.BytesCompleted()) / float32(totalSize),
 	}
 
 	//do we stop or let it run?
