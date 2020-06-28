@@ -6,6 +6,7 @@ import (
 	"github.com/anacrolix/torrent"
 )
 
+//AutoTorrent -
 type AutoTorrent interface {
 	//guid byte array
 	StopTorrent()
@@ -14,16 +15,17 @@ type AutoTorrent interface {
 
 //autotorrent implements the AutoTorrent interface
 type atorrent struct {
-	Guid       string
+	GUID       string
 	UpdateChan chan TMessage
 	Torrent    *torrent.Torrent
 	StartTime  int64
 	close      bool
 }
 
+//TMessage -
 type TMessage struct {
 	Name           string  `json:"name"`
-	Guid           string  `json:"guid"`
+	GUID           string  `json:"guid"`
 	BytesTotal     int64   `json:"bytetot"`
 	BytesComplete  int64   `json:"bytecom"`
 	DownloadSpeed  float32 `json:"down"`
@@ -33,9 +35,10 @@ type TMessage struct {
 	LastUpdate     int64   `json:"lastupdate"`
 }
 
+//NewAutoTorrent -
 func NewAutoTorrent(guid string, torrent *torrent.Torrent, updateCh chan TMessage) AutoTorrent {
 	at := &atorrent{
-		Guid:       guid,
+		GUID:       guid,
 		UpdateChan: updateCh,
 		Torrent:    torrent,
 		StartTime:  time.Now().Unix(),
@@ -60,7 +63,7 @@ func (at *atorrent) StartTorrent() {
 		//inform update chan that new info is ready
 		at.UpdateChan <- TMessage{
 			Name:           at.Torrent.Name(),
-			Guid:           at.Guid,
+			GUID:           at.GUID,
 			BytesTotal:     totalSize,
 			BytesComplete:  at.Torrent.BytesCompleted(),
 			DownloadSpeed:  float32(at.Torrent.BytesCompleted()-lastDOwnload) / 2000.0,
@@ -77,7 +80,7 @@ func (at *atorrent) StartTorrent() {
 	//should be 100%
 	at.UpdateChan <- TMessage{
 		Name:           at.Torrent.Name(),
-		Guid:           at.Guid,
+		GUID:           at.GUID,
 		BytesTotal:     totalSize,
 		BytesComplete:  at.Torrent.BytesCompleted(),
 		DownloadSpeed:  float32(at.Torrent.BytesCompleted()-lastDOwnload) / 2000.0,

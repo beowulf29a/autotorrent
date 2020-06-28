@@ -27,12 +27,12 @@ const (
 )
 
 const (
-	topic_sub string = "autotorrent/subscriber"
-	topic_pub string = "autotorrent/receiver"
-	broker    string = "bentobox.local:1883"
-	user      string = "mqttuser"
-	pwd       string = "bojangles"
-	id        string = "autotorrent"
+	topicSub string = "autotorrent/subscriber"
+	topicPub string = "autotorrent/receiver"
+	broker   string = "bentobox.local:1883"
+	user     string = "mqttuser"
+	pwd      string = "bojangles"
+	id       string = "autotorrent"
 )
 
 func main() {

@@ -9,6 +9,7 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
+//MQTTPub -
 type MQTTPub struct {
 	mqttClient    mqtt.Client
 	torrentClient *torrent.Client
@@ -17,6 +18,7 @@ type MQTTPub struct {
 	updateChan    chan TMessage
 }
 
+//NewPub -
 func NewPub(client mqtt.Client) MQTTPub {
 	return MQTTPub{
 		mqttClient: client,
@@ -36,8 +38,9 @@ func (p *MQTTPub) init() {
 
 }
 
+//AddTorrent -
 func (p *MQTTPub) AddTorrent(link string) {
-	guid := p.getGuid(link)
+	guid := p.getGUID(link)
 	if 0 < len(link) {
 		t, e := p.torrentClient.AddMagnet(link)
 		if nil == e {
@@ -51,11 +54,12 @@ func (p *MQTTPub) AddTorrent(link string) {
 	}
 }
 
-func (p *MQTTPub) getGuid(val string) string {
+func (p *MQTTPub) getGUID(val string) string {
 	idx := strings.LastIndex(val, ":") + 1
 	return val[idx:]
 }
 
+//PublishToMQTT -
 func (p *MQTTPub) PublishToMQTT() {
 	updateMap := make(map[string]TMessage)
 
@@ -66,7 +70,7 @@ func (p *MQTTPub) PublishToMQTT() {
 		if !ok {
 			break
 		} else {
-			updateMap[msg.Guid] = msg
+			updateMap[msg.GUID] = msg
 
 			//synchronize maps
 			if len(p.torrents) != len(updateMap) {
@@ -92,7 +96,7 @@ func (p *MQTTPub) PublishToMQTT() {
 					count++
 				}
 				b, _ := json.Marshal(fml{Entities: output})
-				p.mqttClient.Publish(topic_pub, 0, false, b)
+				p.mqttClient.Publish(topicPub, 0, false, b)
 			}
 		}
 	}
@@ -102,6 +106,7 @@ type fml struct {
 	Entities []TMessage
 }
 
+//RemoveTorrent -
 func (p *MQTTPub) RemoveTorrent(guid string) {
 	p.mapLocker.Lock()
 	if t, ok := p.torrents[guid]; ok {
