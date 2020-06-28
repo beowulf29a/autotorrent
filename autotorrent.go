@@ -29,7 +29,7 @@ const (
 const (
 	topicSub string = "autotorrent/subscriber"
 	topicPub string = "autotorrent/receiver"
-	broker   string = "bentobox.local:1883"
+	broker   string = "192.168.86.50:1883"
 	user     string = "mqttuser"
 	pwd      string = "bojangles"
 	id       string = "autotorrent"
