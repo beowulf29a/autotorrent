@@ -30,6 +30,7 @@ func NewPub(client mqtt.Client) MQTTPub {
 func (p *MQTTPub) init() {
 	config := torrent.NewDefaultClientConfig()
 	config.Seed = true
+	config.DataDir = "/ssd/BM TV Shows/"
 	c, err := torrent.NewClient(config)
 	if nil == err {
 		p.torrentClient = c
@@ -55,8 +56,15 @@ func (p *MQTTPub) AddTorrent(link string) {
 }
 
 func (p *MQTTPub) getGUID(val string) string {
-	idx := strings.LastIndex(val, ":") + 1
-	return val[idx:]
+	segments := strings.SplitAfterN(val, ":", 4)
+	if 3 < len(segments) {
+		endidx := strings.Index(segments[3], "&")
+		if -1 < endidx {
+			return segments[3][0:endidx]
+		}
+	}
+
+	return val
 }
 
 //PublishToMQTT -
